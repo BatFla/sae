@@ -11,21 +11,25 @@ var_dump($offre);
 echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/adresse_controller.php';
 $adresseController = new AdresseController();
-$adresse = $adresseController->getInfosAdresse($offre['id_adresse']);
+$adresse = is_array($offre) ? $adresseController->getInfosAdresse($offre['id_adresse']) : [];
 echo "<pre>";
 var_dump($adresse);
 echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/type_offre_controller.php';
 $typeOffreController = new TypeOffreController();
-$typesOffres = $typeOffreController->getInfosTypeOffre($offre['id_type_offre']);
+$typesOffres = is_array($offre) ? $typeOffreController->getInfosTypeOffre($offre['id_type_offre']) : [];
 echo "<pre>";
 var_dump($typesOffres);
 echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/cat_offre_controller.php';
 $catOffreController = new CatOffreController();
-$catOffre = $catOffreController->getOffreCategorie($offre['id_offre']);
+$catOffre = is_array($offre) ? $catOffreController->getOffreCategorie($offre['id_offre']) : [];
 echo "<pre>";
-var_dump($catOffre[0]['type_offre']);
+if (is_array($catOffre) && isset($catOffre[0]['type_offre'])) {
+	var_dump($catOffre[0]['type_offre']);
+} else {
+	echo "No type_offre found.";
+}
 echo "</pre>";
 // require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/tag_controller.php';
 // $tagController = new TagController();
@@ -33,15 +37,15 @@ echo "</pre>";
 // echo "<pre>";
 // var_dump($tags);
 // echo "</pre>";
-require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/tag_resto_controller.php';
+require_once __DIR__ . '/../controller/tag_resto_controller.php';
 $tagRestoController = new TagRestoController();
-$tagsResto = $tagRestoController->getTagResto($offre['id_offre']);
+$tagsResto = is_array($offre) ? $tagRestoController->getTagResto($offre['id_offre']) : [];
 echo "<pre>";
 var_dump($tagsResto);
 echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/horaire_controller.php';
 $horaireController = new HoraireController();
-$horaires = $horaireController->getHorairesOfOffre($offre['id_offre']);
+$horaires = is_array($offre) ? $horaireController->getHorairesOfOffre($offre['id_offre']) : [];
 echo "<pre>";
 var_dump($horaires);
 echo "</pre>";
@@ -53,7 +57,7 @@ echo "</pre>";
 // echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/type_repas_restaurant_controller.php';
 $typeRepasRestaurantController = new TypeRepasRestaurantController();
-$typesRepasRestaurant = $typeRepasRestaurantController->getTypeRepasRestaurant($offre['id_offre']);
+$typesRepasRestaurant = is_array($offre) ? $typeRepasRestaurantController->getTypeRepasRestaurant($offre['id_offre']) : [];
 echo "<pre>";
 var_dump($typesRepasRestaurant);
 echo "</pre>";
@@ -66,7 +70,13 @@ var_dump($repasNoms);
 echo "</pre>";
 require_once dirname($_SERVER['DOCUMENT_ROOT']) . '/controller/image_controller.php';
 $imageController = new ImageController();
-$images = $imageController->getImagesOfOffre($offre['id_offre']);
+echo "<pre>";
+var_dump($imageController);
+echo "</pre>";
+$images = is_array($offre) ? $imageController->getImagesOfOffre($offre['id_offre']) : [];
+if (!is_array($images)) {
+	$images = [];
+}
 echo "<pre>";
 var_dump($images);
 echo "</pre>";
@@ -165,7 +175,7 @@ $pro = verifyPro();
 		];
 		var_dump($typesRepas);
 		$nb_attractions = (int) $_POST['nb_attractions'] ?? 0; // PARC_ATTRACTION
-		$prices = $_POST['prices'] ?? [];
+		$prices = isset($_POST['prices']) && is_array($_POST['prices']) ? $_POST['prices'] : [];
 		$tags = $_POST['tags'][$activityType] ?? [];
 		$id_pro = $_SESSION['id_pro'];
 		$prestations = $_POST['newPrestationName'] ?? [];
@@ -712,68 +722,18 @@ $pro = verifyPro();
 													<div class="w-full justify-between">
 														<!-- Photo principale -->
 														<div class="flex flex-col justify-between w-full">
-															<label for="photo-upload-carte" class="text-nowrap w-full">Photo de la carte :</label>
-															<input type="file" name="photo-upload-carte" id="photo-upload-carte" required
+														<!-- Champ pour télécharger une nouvelle photo -->
+														<label for="photo-upload-carte" class="text-nowrap w-full">Photo de la carte :</label>
+														<input type="file" name="photo-upload-carte" id="photo-upload-carte"
 															class="text-center text-secondary block w-full
 															border-dashed border-2 border-secondary rounded-lg p-2
 															file:mr-5 file:py-3 file:px-10
-															file:text-small file:font-bold  file:text-secondary
+															file:text-small file:font-bold file:text-secondary
 															file:border file:border-secondary
-															hover:file:cursor-pointer hover:file:bg-secondary hover:file:text-white" accept=".svg,.png,.jpg,.jpeg,.webp" />
+															hover:file:cursor-pointer hover:file:bg-secondary hover:file:text-white"
+															accept=".svg,.png,.jpg,.jpeg,.webp" />
+													</div>
 
-															<img id="preview-image" src="#" alt="Preview Image" class="mt-2 w-full h-auto">
-
-															<script>
-																document.getElementById('photo-upload-carte').addEventListener('change', function(event) {
-																	const file = event.target.files[0];
-																	const previewImage = document.getElementById('preview-image');
-																	if (file) {
-																		const reader = new FileReader();
-																		reader.onload = function(e) {
-																			previewImage.src = e.target.result;
-																		};
-																		reader.readAsDataURL(file);
-																	} else {
-																		previewImage.src = '#';
-																	}
-																});
-															</script>
-														</div>
-														<?php
-														$imagePath = '/public/images/offres/' . $offre['id_offre'] . '.jpg';
-														if (file_exists($_SERVER['DOCUMENT_ROOT'] . $imagePath)) {
-															echo "<img id='preview-image' src='$imagePath' alt='Preview Image' class='mt-2 w-full h-auto'>";
-														} else {
-															echo "<img id='preview-image' src='#' alt='Preview Image' class='mt-2 w-full h-auto'>";
-														}
-
-														
-														foreach ($images as $image) {
-															if (strpos($image['type'], 'detail-') !== false) {
-																echo "Image de détail existante : " . $image['url'] . "<br>";
-															} else if ($image['type'] === 'carte') {
-																echo "Image de la carte existante : " . $image['url'] . "<br>";
-																echo "<script>
-																	document.getElementById('preview-image').src = '{$image['url']}';
-																	document.getElementById('photo-upload-carte').required = false;
-																</script>";
-															}
-														}
-														
-														foreach ($images as $image) {
-															if (strpos($image['type'], 'detail-') !== false) {
-																echo "Image de détail existante : " . $image['url'] . "<br>";
-															} else if ($image['type'] === 'carte') {
-																echo "Image de la carte existante : " . $image['url'] . "<br>";
-																echo "<script>
-																	document.getElementById('preview-image').src = '{$image['url']}';
-																	document.getElementById('photo-upload-carte').required = false;
-																</script>";
-															}
-														}
-														?>
-
-														?>
 														<!-- Photos détaillée -->
 														<div class="flex flex-col justify-between w-full">
 															<label for="photo-detail[]" class="text-nowrap w-full">Photos de l'offre détaillée:</label>
@@ -1548,27 +1508,34 @@ $pro = verifyPro();
 															</div>
 														</div>
 														<!-- Image de fond -->
-														<img class="h-48 w-full  object-cover" src="/public/images/image-test.png"
+														<img class="h-48 w-full  object-cover" src="/public/images/offres/<?php echo $images['carte']; ?>"
 															alt="Image promotionnelle de l'offre" id="preview-image" />
-														<script>
-															document
-																.getElementById("photo-upload-carte")
-																.addEventListener("change", function (event) {
-																	const file = event.target.files[0]; // Récupérer le fichier sélectionné
-																	const previewImage =
-																		document.getElementById("preview-image"); // Élément d'image à mettre à jour
+															
+															<script>
+																document.addEventListener('DOMContentLoaded', function () {
+																	const previewImage = document.getElementById('preview-image');
+																	const existingImageSrc = '<?php echo $imagePath; ?>'; // Récupérer le chemin de l'image depuis PHP
 
-												if (file) {
-													const reader = new FileReader(); // Créer un nouvel objet FileReader
-													reader.onload = function (e) {
-														previewImage.src = e.target.result; // Mettre à jour la source de l'image avec le fichier
-													};
-													reader.readAsDataURL(file); // Lire le fichier comme une URL de données
-												} else {
-													previewImage.src = "#"; // Image par défaut ou vide si aucun fichier
-												}
-											});
-									</script>
+																	// Si une image existante est trouvée, l'afficher dans la prévisualisation
+																	if (existingImageSrc && existingImageSrc !== '#') {
+																		previewImage.src = existingImageSrc;
+																	}
+
+																	// Gestion du téléchargement d'une nouvelle image
+																	document.getElementById('photo-upload-carte').addEventListener('change', function (event) {
+																		const file = event.target.files[0]; // Récupérer le fichier sélectionné
+																		if (file) {
+																			const reader = new FileReader(); // Créer un objet FileReader
+																			reader.onload = function (e) {
+																				previewImage.src = e.target.result; // Afficher l'image dans la prévisualisation
+																			};
+																			reader.readAsDataURL(file); // Lire le fichier comme une URL de données
+																		} else {
+																			previewImage.src = '#'; // Réinitialiser l'image si aucun fichier n'est sélectionné
+																		}
+																	});
+																});
+															</script>
 									<!-- Infos principales -->
 									<div class="infos flex items-center justify-around gap-2 px-2 w-full max-w-full">
 										<!-- Localisation -->
